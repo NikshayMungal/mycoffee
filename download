@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+__azurite_db_*.json
+__blobstorage__/
+__queuestorage__/
+AzuriteConfig
+*.zip

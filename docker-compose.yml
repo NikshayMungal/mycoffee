@@ -1,0 +1,42 @@
+# CoffeeNChill - Part 2: one command starts the whole backend.
+#   1. Replace YOURDOCKERUSER with your Docker Hub username (2 places).
+#   2. docker compose up
+# Both images are PULLED FROM DOCKER HUB (no "build:" paths).
+
+services:
+  azurite:
+    image: YOURDOCKERUSER/coffeenchill-azurite:v1.0
+    container_name: coffeenchill-azurite
+    ports:
+      - "10000:10000"   # Blob
+      - "10001:10001"   # Queue
+      - "10002:10002"   # Table
+    volumes:
+      - azurite-data:/data        # keeps tables/queues between restarts
+    networks:
+      - coffee-net
+    restart: unless-stopped
+
+  functions:
+    image: YOURDOCKERUSER/coffeenchill-functions:v2.0
+    container_name: coffeenchill-functions
+    depends_on:
+      - azurite
+    ports:
+      - "7071:80"
+    environment:
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      # Azurite's well-known development account, pointed at the "azurite" service name.
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      DocumentStorageMode: "Blob"          # use "FileShare" + FileShareConnectionString with a real Azure account
+      ORDER_STATUS_DELAY_SECONDS: "5"
+    networks:
+      - coffee-net
+    restart: unless-stopped
+
+networks:
+  coffee-net:
+    driver: bridge
+
+volumes:
+  azurite-data:
