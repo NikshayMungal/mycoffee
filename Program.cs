@@ -22,6 +22,7 @@ var host = new HostBuilder()
         services.AddSingleton<IMenuRepository, MenuRepository>();
         services.AddSingleton<IOrderRepository, OrderRepository>();
         services.AddSingleton<IDocumentStore>(_ => DocumentStoreFactory.Create(conn));
+        services.AddSingleton<IDocumentStore, DocumentStores>();
     })
     .Build();
 
