@@ -1,7 +1,10 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\Fuctions",
+    "\\Models",
+    "\\Services"
   ],
-  "SelectedNode": "\\docker-compose.yml",
+  "SelectedNode": "\\Services\\DocumentStores.cs",
   "PreviewInSolutionExplorer": false
 }
