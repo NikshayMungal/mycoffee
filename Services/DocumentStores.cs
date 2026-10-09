@@ -1,61 +1,65 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Azure;
 using Azure.Storage.Files.Shares;
 using Azure.Storage.Files.Shares.Models;
 using Microsoft.Extensions.Configuration;
 
-namespace CoffeeNChill.Services
+namespace CoffeeNChill.Functions.Services
 {
+    public interface IDocumentStore
+    {
+        Task UploadDocumentAsync(string fileName, Stream content);
+        Task<IEnumerable<string>> ListDocumentsAsync();
+    }
+
     public class DocumentStores : IDocumentStore
     {
         private readonly string _connectionString;
-        private readonly string _shareName;
+        private readonly string _shareName = "staff-docs";
 
         public DocumentStores(IConfiguration configuration)
         {
-            _connectionString = configuration["AzureWebJobsStorage"] ??
-                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;";
-
-            _shareName = "staff-documents";
+            _connectionString = configuration["AzureWebJobsStorage"] ?? "UseDevelopmentStorage=true";
         }
 
-        public async Task<ShareClient> GetShareClientAsync()
+        private ShareClient GetShareClient()
         {
-            var shareClient = new ShareClient(_connectionString, _shareName);
-            await shareClient.CreateIfNotExistsAsync();
-            return shareClient;
+            var serviceClient = new ShareClient(_connectionString, _shareName);
+            serviceClient.CreateIfNotExists();
+            return serviceClient;
         }
 
-        public async Task UploadDocumentAsync(string fileName, Stream content, string contentType)
+        public async Task UploadDocumentAsync(string fileName, Stream content)
         {
-            var shareClient = await GetShareClientAsync();
+            var shareClient = GetShareClient();
             var directoryClient = shareClient.GetRootDirectoryClient();
+
+            // Ensure directory exists
             await directoryClient.CreateIfNotExistsAsync();
 
             var fileClient = directoryClient.GetFileClient(fileName);
 
-            content.Position = 0;
+            // Create or overwrite file with the stream length
             await fileClient.CreateAsync(content.Length);
 
-            await fileClient.UploadAsync(content);
-            await fileClient.SetHttpHeadersAsync(new ShareFileHttpHeaders
-            {
-                ContentType = contentType
-            });
+            // Upload range content correctly
+            await fileClient.UploadRangeAsync(new HttpRange(0, content.Length), content);
         }
 
-        public async Task<(Stream Content, string ContentType, string FileName)> DownloadDocumentAsync(string fileName)
+        public async Task<IEnumerable<string>> ListDocumentsAsync()
         {
-            var shareClient = await GetShareClientAsync();
+            var shareClient = GetShareClient();
             var directoryClient = shareClient.GetRootDirectoryClient();
-            var fileClient = directoryClient.GetFileClient(fileName);
 
-            var downloadResponse = await fileClient.DownloadAsync();
-            string contentType = downloadResponse.Value.ContentType ?? "application/octet-stream";
+            var files = new List<string>();
+            await foreach (ShareFileItem item in directoryClient.GetFilesAndDirectoriesAsync())
+            {
+                if (!item.IsDirectory)
+                {
+                    files.Add(item.Name);
+                }
+            }
 
-            return (downloadResponse.Value.Content, contentType, fileName);
+            return files;
         }
     }
 }

@@ -1,64 +1,57 @@
-using System.IO;
-using System.Threading.Tasks;
+using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using CoffeeNChill.Services; // <-- This fixes the IDocumentStore error
+using CoffeeNChill.Functions.Services;
 
 namespace CoffeeNChill.Functions
 {
     public class DocumentFunctions
     {
-        private readonly IDocumentStore _documentStore;
         private readonly ILogger<DocumentFunctions> _logger;
+        private readonly IDocumentStore _documentStore;
 
-        public DocumentFunctions(IDocumentStore documentStore, ILogger<DocumentFunctions> logger)
+        public DocumentFunctions(ILogger<DocumentFunctions> logger, IDocumentStore documentStore)
         {
-            _documentStore = documentStore;
             _logger = logger;
+            _documentStore = documentStore;
         }
 
-        [Function("UploadStaffDocument")]
-        public async Task<IActionResult> UploadStaffDocument(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "staff/documents/{fileName}")] HttpRequest req,
-            string fileName)
+        [Function("UploadDocument")]
+        public async Task<IActionResult> UploadDocument(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "documents")] HttpRequest req)
         {
-            _logger.logInformation($"Uploading staff document: {fileName}");
+            _logger.LogInformation("Processing document upload request.");
 
-            if (req.Body == null || req.Body.Length == 0)
+            if (!req.HasFormContentType)
             {
-                return new BadRequestObjectResult("Please provide a file body to upload.");
+                return new BadRequestObjectResult("Request must be multipart/form-data.");
             }
 
-            string contentType = req.ContentType ?? "application/octet-stream";
+            var form = await req.ReadFormAsync();
+            var file = form.Files["file"];
 
-            await _documentStore.UploadDocumentAsync(fileName, req.Body, contentType);
+            if (file == null || file.Length == 0)
+            {
+                return new BadRequestObjectResult("No file uploaded.");
+            }
 
-            return new OkObjectResult(new { message = $"Document '{fileName}' uploaded successfully." });
+            using var stream = file.OpenReadStream();
+            await _documentStore.UploadDocumentAsync(file.FileName, stream);
+
+            return new OkObjectResult(new { message = $"File '{file.FileName}' uploaded successfully." });
         }
 
-        [Function("DownloadStaffDocument")]
-        public async Task<IActionResult> DownloadStaffDocument(
-            [HttpTrigger(AuthorizationLevel.Function, "get", Route = "staff/documents/{fileName}")] HttpRequest req,
-            string fileName)
+        [Function("GetDocuments")]
+        public async Task<IActionResult> GetDocuments(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "documents")] HttpRequest req)
         {
-            _logger.logInformation($"Downloading staff document: {fileName}");
+            _logger.LogInformation("Processing get documents request.");
 
-            try
-            {
-                var (content, contentType, name) = await _documentStore.DownloadDocumentAsync(fileName);
-                return new FileStreamResult(content, contentType)
-                {
-                    FileDownloadName = name
-                };
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, $"Error downloading document {fileName}");
-                return new NotFoundObjectResult(new { error = $"Document '{fileName}' not found." });
-            }
+            var documents = await _documentStore.ListDocumentsAsync();
+            return new OkObjectResult(documents);
         }
     }
 }
