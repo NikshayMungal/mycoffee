@@ -8,12 +8,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace CoffeeNChill.Services
 {
-    public interface IDocumentStore
-    {
-        Task UploadDocumentAsync(string fileName, Stream content, string contentType);
-        Task<(Stream Content, string ContentType, string FileName)> DownloadDocumentAsync(string fileName);
-    }
-
     public class DocumentStores : IDocumentStore
     {
         private readonly string _connectionString;
@@ -45,15 +39,11 @@ namespace CoffeeNChill.Services
             content.Position = 0;
             await fileClient.CreateAsync(content.Length);
 
-            var uploadOptions = new ShareFileUploadOptions
+            await fileClient.UploadAsync(content);
+            await fileClient.SetHttpHeadersAsync(new ShareFileHttpHeaders
             {
-                HttpHeaders = new ShareFileHttpHeaders
-                {
-                    ContentType = contentType
-                }
-            };
-
-            await fileClient.UploadAsync(content, uploadOptions);
+                ContentType = contentType
+            });
         }
 
         public async Task<(Stream Content, string ContentType, string FileName)> DownloadDocumentAsync(string fileName)
@@ -63,7 +53,7 @@ namespace CoffeeNChill.Services
             var fileClient = directoryClient.GetFileClient(fileName);
 
             var downloadResponse = await fileClient.DownloadAsync();
-            string contentType = downloadResponse.Value.Details.ContentType ?? "application/octet-stream";
+            string contentType = downloadResponse.Value.ContentType ?? "application/octet-stream";
 
             return (downloadResponse.Value.Content, contentType, fileName);
         }

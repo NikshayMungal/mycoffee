@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CoffeeNChill.Functions")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c705d88705b55c20b8b272fd121334d36eb27b12")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7ede79b6fd07df2e1d9c5617fce775daf0d6ffa0")]
 [assembly: System.Reflection.AssemblyProductAttribute("CoffeeNChill.Functions")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CoffeeNChill.Functions")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

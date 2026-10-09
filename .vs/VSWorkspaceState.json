@@ -3,6 +3,6 @@
     "",
     "\\Services"
   ],
-  "SelectedNode": "\\Services\\DocumentStores.cs",
+  "SelectedNode": "\\Services\\IDocumentStore.cs",
   "PreviewInSolutionExplorer": false
 }
