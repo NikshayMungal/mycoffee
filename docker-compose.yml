@@ -1,11 +1,11 @@
 # CoffeeNChill - Part 2: one command starts the whole backend.
-#   1. Replace YOURDOCKERUSER with your Docker Hub username (2 places).
+#   1. Using Docker Hub username: nikshaymungal
 #   2. docker compose up
-# Both images are PULLED FROM DOCKER HUB (no "build:" paths).
+# Both images are PULLED FROM DOCKER HUB.
 
 services:
   azurite:
-    image: YOURDOCKERUSER/coffeenchill-azurite:v1.0
+    image: nikshaymungal/coffeenchill-azurite:v1.0
     container_name: coffeenchill-azurite
     ports:
       - "10000:10000"   # Blob
@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
 
   functions:
-    image: YOURDOCKERUSER/coffeenchill-functions:v2.0
+    image: nikshaymungal/coffeenchill-functions:v2.0
     container_name: coffeenchill-functions
     depends_on:
       - azurite
